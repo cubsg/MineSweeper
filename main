@@ -1,0 +1,224 @@
+#include <iostream>
+#include <SFML/Graphics.hpp>
+#include <fstream>
+#include "Board.h"
+using namespace  std;
+/*
+07:01,Alex
+09:04,Bruce
+10:03,Carl
+11:24,Dan
+12:15,Eve
+ */
+
+int main()
+{
+    using namespace std::this_thread;
+    using namespace std::chrono;
+///read board config file and set them as the Cols and Rows
+ifstream File("files/board_config.cfg");
+    if (!File.is_open()) {
+        cout << "Failed to load text file!" << endl;
+    }
+string cols;
+string ros;
+string mines;
+
+getline(File, cols);
+getline(File, ros);
+getline(File, mines);
+
+int columns = stoi(cols);
+int rows = stoi(ros);
+int num_mines = stoi(mines);
+
+sf::RenderWindow window(sf::VideoMode(800, 600), "Minesweeper", sf::Style::Close);
+Board Game_Board(columns, rows, num_mines);
+
+Welcome_Window(window, Game_Board,float(columns), float(rows), num_mines);
+
+///tiles
+sf::Texture texture;
+if(!texture.loadFromFile("files/images/tile_revealed.png")){
+    cout << "Failed" << endl;
+}
+sf::Sprite sprite;
+sprite.setTexture(texture);
+sprite.setTextureRect(sf::IntRect(0, 0, columns * 32, rows * 32));
+texture.setRepeated(true);
+
+///happy face button
+sf::Texture happy_texture;
+if(!happy_texture.loadFromFile("files/images/face_happy.png")){
+    cout << "Failed" << endl;
+}
+sf::Sprite happy_sprite;
+happy_sprite.setTexture(happy_texture);
+happy_sprite.setPosition(((columns/2.0) * 32) - 32, 32 * (rows + 0.5f));
+int happy_x = ((columns/2.0) * 32) - 32;
+int happy_y = 32 * (rows + 0.5f);
+
+///debug button
+sf::Texture debug_texture;
+if(!debug_texture.loadFromFile("files/images/debug.png")){
+    cout << "Failed" << endl;
+}
+sf::Sprite debug_sprite;
+debug_sprite.setTexture(debug_texture);
+debug_sprite.setPosition(((columns * 32) - 304), (32 * (rows + 0.5f)));
+
+///pause/play button
+sf::Texture pause_texture;
+if(!pause_texture.loadFromFile("files/images/pause.png")){
+    cout << "Failed" << endl;
+}
+sf::Sprite pause_sprite;
+pause_sprite.setTexture(pause_texture);
+pause_sprite.setPosition(((columns * 32) - 240), (32 * (rows + 0.5f)));
+int pause_x = (columns * 32) - 240;
+int pause_y = 32 * (rows + 0.5f);
+
+///Leaderboard Button
+sf::Texture leader_texture;
+if(!leader_texture.loadFromFile("files/images/leaderboard.png")){
+    cout << "Failed" << endl;
+}
+sf::Sprite leader_sprite;
+leader_sprite.setTexture(leader_texture);
+leader_sprite.setPosition(((columns * 32) - 176), (32 * (rows + 0.5f)));
+
+///counter
+sf::Texture counter_texture;
+if(!counter_texture.loadFromFile("files/images/digits.png")){
+        cout << "Failed" << endl;
+    }
+sf::Sprite counter_sprite_1;
+sf::Sprite counter_sprite_2;
+sf::Sprite counter_sprite_3;
+counter_sprite_1.setTexture(counter_texture);
+counter_sprite_1.setTextureRect(sf::IntRect(0,0,21,32));
+counter_sprite_2.setTexture(counter_texture);
+counter_sprite_2.setTextureRect(sf::IntRect(0,0,21,32));
+counter_sprite_3.setTexture(counter_texture);
+counter_sprite_3.setTextureRect(sf::IntRect(0,0,21,32));
+
+counter_sprite_1.setPosition(33, (32 * (rows + 0.5f) + 16));
+counter_sprite_2.setPosition(54, (32 * (rows + 0.5f) + 16));
+counter_sprite_3.setPosition(75, (32 * (rows + 0.5f) + 16));
+
+///timer
+sf::Sprite timer_sprite_1;
+sf::Sprite timer_sprite_2;
+sf::Sprite timer_sprite_3;
+sf::Sprite timer_sprite_4;
+
+timer_sprite_1.setTexture(counter_texture);
+timer_sprite_1.setTextureRect(sf::IntRect(0,0,21,32));
+timer_sprite_2.setTexture(counter_texture);
+timer_sprite_2.setTextureRect(sf::IntRect(0,0,21,32));
+timer_sprite_3.setTexture(counter_texture);
+timer_sprite_3.setTextureRect(sf::IntRect(0,0,21,32));
+timer_sprite_4.setTexture(counter_texture);
+timer_sprite_4.setTextureRect(sf::IntRect(0,0,21,32));
+
+timer_sprite_1.setPosition((columns*32)-97, (32 * (rows + 0.5f) + 16));
+timer_sprite_2.setPosition((columns*32)-76, (32 * (rows + 0.5f) + 16));
+timer_sprite_3.setPosition((columns*32)-54, (32 * (rows + 0.5f) + 16));
+timer_sprite_4.setPosition((columns*32)-33, (32 * (rows + 0.5f) + 16));
+
+///generate mines
+Generate_Mines(window, Game_Board, columns, rows, num_mines);
+Generate_Numbers(window, Game_Board, columns, rows, num_mines);
+Board::Timer Time;
+
+
+while (window.isOpen()) {
+    sf::Event event;
+    while (window.pollEvent(event)) {
+        Stop_Timer(window, Game_Board, Time);
+
+        if (event.type == sf::Event::Closed) {
+            window.close();
+        }
+
+        if (event.type == sf::Event::MouseButtonPressed) {
+            int Mouse_x = sf::Mouse::getPosition(window).x;
+            int Mouse_y = sf::Mouse::getPosition(window).y;
+
+            if (sf::Mouse::isButtonPressed(sf::Mouse::Left)){
+                //Reveal a certain tile
+                if ((Mouse_y < (rows * 32 - 1)) and (Mouse_x < (columns * 32 - 1)) and (!Game_Board.Debug) and (!Game_Board.Paused) and (Game_Board.Game)){
+                    //cout << "X: " << Mouse_x << " Y: " << Mouse_y << endl;
+                    int i = Mouse_y/32 + 0.5f;
+                    int j = Mouse_x/32 + 0.5f;
+                    Recursive_Check(window, Game_Board, i, j, columns, rows);
+                    ///Check if Mine
+                    Check_If_Mine(window, Game_Board, Mouse_y, Mouse_x, columns, rows);
+                    ///Check if Won
+                    Check_If_Won(window, Game_Board, columns, rows, num_mines);
+                }
+
+                //Allow player to select other buttons
+                else{
+                    ///Happy Button
+                    if ((Mouse_x >= 360) and (Mouse_x < 430) and (Mouse_y >= 530) and (Mouse_y < 590)){
+                        Reset_Button(window, Game_Board, columns, rows, num_mines);
+                    }
+
+                    ///Debug Button
+                    if ((Mouse_x >= 500) and (Mouse_x < 560) and (Mouse_y >= 530) and (Mouse_y < 590) and (Game_Board.Game)){
+                        Debug_Button(window, Game_Board, columns, rows);
+                    }
+
+                    ///Pause Button
+                    if ((Mouse_x >= 560) and (Mouse_x < 620) and (Mouse_y >= 530) and (Mouse_y < 590) and (Game_Board.Game)){
+                        Pause_Button(window, Game_Board, columns, rows);
+                    }
+                    ///Leaderboard Button
+                    if ((Mouse_x >= 620) and (Mouse_x < 690) and (Mouse_y >= 530) and (Mouse_y < 590)){
+                        Pause_Button(window, Game_Board, columns, rows);
+                        Leader_Button(window, Game_Board, columns, rows);
+                    }
+
+
+                }
+            }
+            if (sf::Mouse::isButtonPressed(sf::Mouse::Right)){
+                //Drop a flag
+                if ((Mouse_y < (rows * 32 - 1)) and (Mouse_x < (columns * 32 - 1)) and (!Game_Board.Debug) and (!Game_Board.Paused) and (Game_Board.Game) ) {
+                    Mouse_Flagging(window, Game_Board, Mouse_y, Mouse_x);
+                }
+            }
+    }
+    }
+
+    window.clear(sf::Color::White);
+
+    ///draw tiles
+    window.draw(sprite);
+    window.draw(debug_sprite);
+    window.draw(happy_sprite);
+    window.draw(leader_sprite);
+    window.draw(pause_sprite);
+    //counter
+    window.draw(counter_sprite_1);
+    window.draw(counter_sprite_2);
+    window.draw(counter_sprite_3);
+    //timer
+    window.draw(timer_sprite_1);
+    window.draw(timer_sprite_2);
+    window.draw(timer_sprite_3);
+    window.draw(timer_sprite_4);
+
+    Draw_Face(window, Game_Board, happy_x, happy_y);
+    Draw_Tiles(window, Game_Board, columns, rows, num_mines);
+    Draw_PB(window, Game_Board, pause_x, pause_y);
+    Draw_Counter(window, Game_Board, columns, rows);
+    Draw_Timer(window, Game_Board, Time, columns, rows);
+    Draw_Camo(window, Game_Board, columns, rows);
+
+    window.display();
+}
+
+return 0;
+}
