@@ -7,9 +7,7 @@
 #include <chrono>
 #include <thread>
 
-///Really slow
 using namespace  std;
-
 
 class Board
         {
@@ -77,7 +75,6 @@ public:
     bool Game_Lost = false;
     bool Reset = false;
     string time = "";
-    string total_time = "";
     int seconds = 0;
     int minutes = 0;
     string name = "";
@@ -86,6 +83,7 @@ public:
     bool timer = true;
 
     Board(int columns, int rows, int num_mines);
+    ~Board();
 
     class Timer{
     std::chrono::system_clock::time_point start_time, current_time;
@@ -272,6 +270,9 @@ Board::Board(int columns, int rows, int num_mines){
         this -> Scores[total_time] = name;
     }
 
+}
+
+Board::~Board() {
 }
 
 void setText(sf::Text &text, float x, float y, float z){
@@ -1264,7 +1265,11 @@ void Draw_Timer(sf::RenderWindow &window, Board &Game_Board, Board::Timer Time, 
         cout << "Failed" << endl;
     }
     if (!Game_Board.Paused and !Game_Board.Reset and Game_Board.timer){
-        Add_Second(window, Game_Board, Time);
+        //fixme takes up alot of memory, so commented out
+        //Add_Second(window, Game_Board, Time);
+        //fixme remove these 2 lines to fix the timer
+        Game_Board.minutes = 5;
+        Game_Board.seconds = 30;
     }
     string minutes = to_string(Game_Board.minutes);
     string seconds = to_string(Game_Board.seconds);
